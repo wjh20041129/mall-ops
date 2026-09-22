@@ -37,7 +37,7 @@ Grafana 出面板（导入的 Node Exporter Full 模板）。MySQL/Redis 数据�
 | Prometheus + Grafana | 主机监控（node_exporter 采集 4 台），告警规则（CPU/内存/磁盘/宕机） | `monitor/` |
 | MySQL | 3 张表（users/goods/orders），多表联查 JOIN、事务防超卖、索引 | `app/db.sql`、`app/app.py` |
 | Redis | 商品详情缓存（setex 60s 过期），下单后删缓存保持一致性 | `app/app.py` |
-| Linux | netplan 静态 IP、/etc/hosts 解析、systemctl、crontab、ufw、日志排查 | `docs/部署手册.md` |
+| Linux | netplan 静态 IP、/etc/hosts 解析、systemctl、crontab、ufw、日志排查 | `security/`、`scripts/` |
 | 安全 | fail2ban 防 SSH 爆破（实测 5 次失败封 IP），ufw 按角色放行端口 | `security/` |
 | Shell | MySQL 备份（保留7天）、健康检查（异常自动重启）、日志清理 | `scripts/` |
 | Git | 全程版本管理，演进式提交（见提交历史） | — |
@@ -51,7 +51,6 @@ monitor/    Prometheus 抓取配置 + 告警规则（alert.rules.yml）
 nginx/      Nginx 负载均衡配置（upstream 轮询）
 security/   fail2ban 配置 + 一键部署脚本
 scripts/    backup.sh / health_check.sh / log_cleanup.sh + crontab 示例
-docs/       架构设计、部署手册、面试问答、Redis 速成、fail2ban 实测
 ```
 
 ## 快速开始

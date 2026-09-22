@@ -7,3 +7,4 @@ venv/
 backup/
 *.sql.gz
 .DS_Store
+docs/
