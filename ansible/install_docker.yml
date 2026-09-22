@@ -1,0 +1,23 @@
+---
+# 批量安装 Docker 和 Compose 插件（Ubuntu）
+# 用法: ansible-playbook install_docker.yml
+- name: 安装 Docker
+  hosts: all
+  become: yes
+  tasks:
+    - name: 安装 docker.io 和 docker-compose-v2
+      apt:
+        name: docker.io,docker-compose-v2
+        state: present
+
+    - name: 配置镜像加速
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {"registry-mirrors":["https://docker.m.daocloud.io"]}
+
+    - name: 启动 Docker 并设置开机自启
+      systemd:
+        name: docker
+        state: started
+        enabled: yes

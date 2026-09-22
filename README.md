@@ -1,46 +1,63 @@
 # mall-ops 商城系统部署与运维项目
 
-一个练手用的轻量商城系统，走通「代码 -> 容器化 -> 批量部署 -> 监控告警 -> 备份恢复」整条链路。
+一个轻量商城系统，走通「代码 → 容器化 → 批量部署 → 监控告警 → 安全加固 → 备份恢复」整条链路。
+部署环境为 4 台 Ubuntu 26.04 虚拟机（VMware NAT 网络）。
 
 ## 架构
 
 ```
-浏览器
-  │ http://web01:80
-  ▼
-Nginx (反向代理)
-  │
-  ▼
-Flask 商城应用 (app:5000) ──→ MySQL 8 (mysql:3306, 数据卷持久化)
-  │
-  └──→ Redis 7 (缓存商品详情, 60s 过期)
-
-controlNode: Ansible 控制机 + Prometheus + Grafana + node_exporter
-web01/web02: Nginx + 应用容器
-db01: MySQL + Redis
+                     Windows 浏览器
+                          │
+              http://web01:80（Nginx 负载均衡）
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│ web01 (192.168.93.101)                       web02 (102) │
+│   4 个 Docker 容器：                          1 个容器：   │
+│   ├─ mall-nginx  :80   入口/负载均衡          ├─ mall-app │
+│   ├─ mall-app    :5000 业务应用                 :5000 应用 │
+│   └─ mall-mysql  :3306 数据库（数据卷）                    │
+│   └─ mall-redis  :6379 缓存（数据卷）                     │
+└─────────────────────────────────────────────────────────┘
+        ▲                                       ▲
+        │  node_exporter :9100（4台全装）          │
+        └──────────────┬────────────────────────┘
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│ controlNode (192.168.93.100)                    db01(103) │
+│   Docker 容器：                                 预留数据   │
+│   ├─ prometheus :9090（每15s抓4台指标）          节点（暂   │
+│   └─ grafana    :3000（可视化面板）              无容器）   │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 技术栈
+- web01/web02 的应用连**同一个** MySQL/Redis（数据一致），Nginx upstream 轮询分发
+- 所有容器编排在 `docker-compose.yml`（web02 单独用 `docker-compose.app.yml`）
 
-| 技术 | 用途 |
-|---|---|
-| Linux (Ubuntu) | netplan 静态 IP、ufw 防火墙、crontab 定时任务、日志排查 |
-| Docker / Compose | 应用、Nginx、MySQL、Redis 全容器化编排 |
-| Ansible | SSH 免密 + inventory + ad-hoc 批量执行 + 简单 playbook |
-| Prometheus + Grafana | 主机监控与可视化（node_exporter 采集） |
-| Nginx | 反向代理（支线：负载均衡） |
-| MySQL | 用户/商品/订单表，增删改查、多表联查、事务 |
-| Redis | 商品详情缓存（setex + 过期时间） |
-| Shell / Python | 备份脚本、健康检查脚本、定时清理；应用本身是 Python |
+## 技术栈落点
+
+| 技术 | 用在哪 | 相关文件 |
+|---|---|---|
+| Docker / Compose | 应用/网关/数据库/缓存全容器化；数据卷持久化 | `app/Dockerfile`、`docker-compose.yml` |
+| Nginx | 反向代理 + upstream 轮询负载均衡，日志带 `$upstream_addr` 验证分发 | `nginx/default.conf` |
+| Ansible | SSH 免密 + inventory 分组 + ad-hoc 批量执行 + playbook 批量装 Docker/node_exporter | `ansible/` |
+| Prometheus + Grafana | 主机监控（node_exporter 采集 4 台），告警规则（CPU/内存/磁盘/宕机） | `monitor/` |
+| MySQL | 3 张表（users/goods/orders），多表联查 JOIN、事务防超卖、索引 | `app/db.sql`、`app/app.py` |
+| Redis | 商品详情缓存（setex 60s 过期），下单后删缓存保持一致性 | `app/app.py` |
+| Linux | netplan 静态 IP、/etc/hosts 解析、systemctl、crontab、ufw、日志排查 | `docs/部署手册.md` |
+| 安全 | fail2ban 防 SSH 爆破（实测 5 次失败封 IP），ufw 按角色放行端口 | `security/` |
+| Shell | MySQL 备份（保留7天）、健康检查（异常自动重启）、日志清理 | `scripts/` |
+| Git | 全程版本管理，演进式提交（见提交历史） | — |
 
 ## 目录
 
 ```
-app/        商城应用（Flask + 建表 SQL）
-ansible/    批量部署配置
-scripts/    备份、健康检查、日志清理脚本
-monitor/    Prometheus 配置和告警规则
-docs/       架构设计、部署手册、面试问答
+app/        商城应用（Flask + 建表 SQL + Dockerfile + 页面模板）
+ansible/    inventory 分组、ad-hoc 命令记录、playbook（装 Docker/exporter/一键初始化）
+monitor/    Prometheus 抓取配置 + 告警规则（alert.rules.yml）
+nginx/      Nginx 负载均衡配置（upstream 轮询）
+security/   fail2ban 配置 + 一键部署脚本
+scripts/    backup.sh / health_check.sh / log_cleanup.sh + crontab 示例
+docs/       架构设计、部署手册、面试问答、Redis 速成、fail2ban 实测
 ```
 
 ## 快速开始
@@ -53,26 +70,22 @@ docker compose up -d
 curl http://localhost/            # 商品列表
 curl http://localhost/goods/1     # 商品详情（首次查库，之后命中 Redis）
 
-# 3. 看日志
+# 3. 看日志（确认缓存命中/写入）
 docker compose logs -f app
 ```
 
-MySQL 初始化数据在 `app/db.sql`，首次启动自动导入。默认用户 `admin / 123456`。
+MySQL 初始化数据在 `app/db.sql`（首次启动自动导入），默认用户 `admin / 123456`。
+
+## 关键设计
+
+- **负载均衡**：web02 用 `docker-compose.app.yml` 起独立应用容器，连 web01 的 MySQL/Redis
+- **缓存一致性**：商品详情 Redis 缓存 60s 过期；下单成功后主动 `r.delete` 清缓存，避免显示旧库存
+- **防超卖**：下单事务里 `UPDATE goods SET stock=stock-N WHERE stock>=N`，影响行数为 0 即回滚
+- **监控链路**：node_exporter(4台) → Prometheus → Grafana，告警规则见 `monitor/alert.rules.yml`
+- **备份**：crontab 每天 2 点 mysqldump（`--single-transaction` 不锁表）+ gzip，保留 7 天
 
 ## 当前进度
 
-- [x] 第一阶段（最小架构）：单实例部署 + 备份 + 基础监控
+- [x] 第一阶段：单机全栈部署 + 备份 + 基础监控
 - [x] 第二阶段：Nginx 负载均衡（web01/web02 轮询）、fail2ban 防爆破
-- [ ] 第三阶段（待做）：Alertmanager 告警、故障演练、Tomcat 点缀
-
-## 负载均衡说明
-
-web02 用 `docker-compose.app.yml` 跑独立应用容器（连 web01 的 MySQL/Redis），
-web01 的 Nginx 通过 upstream 轮询分发（见 `nginx/default.conf`），
-访问日志携带 `$upstream_addr`，刷新页面可从日志确认请求交替落在两台后端。
-
-## 安全加固说明
-
-4 台机器都部署了 fail2ban（sshd jail，默认 5 次失败封禁 10 分钟），
-实测从 controlNode 用错误密码爆破 6 次即被封禁，解封后恢复正常。
-演示过程：`fail2ban-client status sshd` / `fail2ban-client set sshd unbanip <IP>`。
+- [ ] 第三阶段（规划中）：Alertmanager 告警、数据库拆分到 db01、MySQL 主从、故障演练

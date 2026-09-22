@@ -1,0 +1,17 @@
+---
+# 批量配置 /etc/hosts 主机名解析（4 台机器统一）
+- name: 初始化主机名解析
+  hosts: all
+  become: yes
+  vars:
+    hosts_entries:
+      - "192.168.93.100 controlNode"
+      - "192.168.93.101 web01"
+      - "192.168.93.102 web02"
+      - "192.168.93.103 db01"
+  tasks:
+    - name: 追加 hosts 条目
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item }}"
+      loop: "{{ hosts_entries }}"

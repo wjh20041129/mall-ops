@@ -1,0 +1,6 @@
+---
+# 一键初始化全部节点：hosts 解析 -> Docker -> node_exporter
+# 用法: ansible-playbook deploy_all.yml
+- import_playbook: init_hosts.yml
+- import_playbook: install_docker.yml
+- import_playbook: install_exporter.yml
