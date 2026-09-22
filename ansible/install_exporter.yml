@@ -1,0 +1,16 @@
+---
+# 批量安装 node_exporter（Ubuntu 源里自带这个包）
+- name: 安装 node_exporter
+  hosts: all
+  become: yes
+  tasks:
+    - name: 安装 prometheus-node-exporter
+      apt:
+        name: prometheus-node-exporter
+        state: present
+
+    - name: 启动服务并设置开机自启
+      systemd:
+        name: prometheus-node-exporter
+        state: started
+        enabled: yes

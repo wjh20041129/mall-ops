@@ -1,0 +1,35 @@
+groups:
+  - name: host
+    rules:
+      - alert: 主机宕机
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} 采集失败"
+
+      - alert: CPU使用率过高
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} CPU 使用率超过 80%"
+
+      - alert: 内存使用率过高
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} 内存使用率超过 85%"
+
+      - alert: 磁盘空间不足
+        expr: (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} 磁盘使用率超过 85%"
+          description: "挂载点 {{ $labels.mountpoint }}"

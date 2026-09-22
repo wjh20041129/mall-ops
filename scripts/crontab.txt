@@ -1,0 +1,11 @@
+# crontab -e 内容（在 web01 上配置）
+0 2 * * * /root/scripts/backup.sh
+*/5 * * * * /root/scripts/health_check.sh
+0 3 * * 0 /root/scripts/log_cleanup.sh
+
+# 常用命令
+# crontab -l         查看当前定时任务
+# crontab -e         编辑定时任务
+# crontab -r         清除定时任务
+# tail -f /var/log/syslog | grep CRON   查看 cron 执行日志
+# 格式：分 时 日 月 周  命令
