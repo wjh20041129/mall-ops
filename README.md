@@ -70,3 +70,9 @@ MySQL 初始化数据在 `app/db.sql`，首次启动自动导入。默认用户 
 web02 用 `docker-compose.app.yml` 跑独立应用容器（连 web01 的 MySQL/Redis），
 web01 的 Nginx 通过 upstream 轮询分发（见 `nginx/default.conf`），
 访问日志携带 `$upstream_addr`，刷新页面可从日志确认请求交替落在两台后端。
+
+## 安全加固说明
+
+4 台机器都部署了 fail2ban（sshd jail，默认 5 次失败封禁 10 分钟），
+实测从 controlNode 用错误密码爆破 6 次即被封禁，解封后恢复正常。
+演示过程：`fail2ban-client status sshd` / `fail2ban-client set sshd unbanip <IP>`。
