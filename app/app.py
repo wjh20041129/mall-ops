@@ -66,6 +66,8 @@ def goods_detail(gid):
         goods = query("SELECT * FROM goods WHERE id=%s", (gid,), one=True)
         if not goods:
             return "商品不存在", 404
+        # Decimal 不能直接 JSON 序列化，先转 float
+        goods["price"] = float(goods["price"])
         r.setex(key, 60, json.dumps(goods, ensure_ascii=False))
         print("缓存已写入", key)
     return render_template("goods.html", goods=goods)
