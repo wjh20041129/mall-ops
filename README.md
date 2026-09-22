@@ -1,7 +1,27 @@
 # mall-ops 商城系统部署与运维项目
 
-一个轻量商城系统，走通「代码 → 容器化 → 批量部署 → 监控告警 → 安全加固 → 备份恢复」整条链路。
-部署环境为 4 台 Ubuntu 26.04 虚拟机（VMware NAT 网络）。
+**Docker + Ansible + Prometheus** 驱动的商城系统全链路部署与运维：4 台 Ubuntu 虚拟机，容器化部署商城，Nginx 负载均衡，自动化批量运维，主机监控告警，安全加固与自动备份。
+
+## 技术栈
+
+| 领域 | 技术 |
+|---|---|
+| 容器化 | Docker / Docker Compose（自研 Dockerfile 构建应用镜像） |
+| 负载均衡 | Nginx（反向代理 + upstream 轮询双应用节点） |
+| 自动化运维 | Ansible（SSH 免密 / inventory 分组 / ad-hoc / Playbook） |
+| 监控告警 | Prometheus / node_exporter / Grafana（含告警规则） |
+| 数据库 | MySQL（事务 / 多表联查 / 索引）、Redis（缓存） |
+| 后端开发 | Python / Flask |
+| 系统与网络 | Linux（Ubuntu）、Shell 脚本、Git |
+| 安全加固 | fail2ban（防 SSH 爆破）/ UFW 防火墙 |
+
+## 项目亮点
+
+- 4 台 Ubuntu 机器部署完整商城，Nginx 轮询分发到双应用节点（web01/web02），共享同一套 MySQL/Redis，数据一致
+- Ansible 批量初始化节点：装 Docker、装 node_exporter、配置 /etc/hosts（3 个 playbook + ad-hoc 实测）
+- Prometheus 每 15s 抓取 4 台机器指标，Grafana 可视化面板，配置 CPU / 内存 / 磁盘 / 宕机告警规则
+- 下单事务防超卖（条件扣库存 + 回滚）、Redis 缓存一致性（60s 过期 + 下单后主动清缓存）
+- fail2ban 防爆破实测（错误密码 5 次封禁 IP）、MySQL 每日自动备份（保留 7 天）
 
 ## 架构
 
@@ -27,27 +47,12 @@
 Grafana 出面板（导入的 Node Exporter Full 模板）。MySQL/Redis 数据放 docker 数据卷，
 容器删了数据不丢。
 
-## 技术栈落点
-
-| 技术 | 用在哪 | 相关文件 |
-|---|---|---|
-| Docker / Compose | 应用/网关/数据库/缓存全容器化；数据卷持久化 | `app/Dockerfile`、`docker-compose.yml` |
-| Nginx | 反向代理 + upstream 轮询负载均衡，日志带 `$upstream_addr` 验证分发 | `nginx/default.conf` |
-| Ansible | SSH 免密 + inventory 分组 + ad-hoc 批量执行 + playbook 批量装 Docker/node_exporter | `ansible/` |
-| Prometheus + Grafana | 主机监控（node_exporter 采集 4 台），告警规则（CPU/内存/磁盘/宕机） | `monitor/` |
-| MySQL | 3 张表（users/goods/orders），多表联查 JOIN、事务防超卖、索引 | `app/db.sql`、`app/app.py` |
-| Redis | 商品详情缓存（setex 60s 过期），下单后删缓存保持一致性 | `app/app.py` |
-| Linux | netplan 静态 IP、/etc/hosts 解析、systemctl、crontab、ufw、日志排查 | `security/`、`scripts/` |
-| 安全 | fail2ban 防 SSH 爆破（实测 5 次失败封 IP），ufw 按角色放行端口 | `security/` |
-| Shell | MySQL 备份（保留7天）、健康检查（异常自动重启）、日志清理 | `scripts/` |
-| Git | 全程版本管理，演进式提交（见提交历史） | — |
-
 ## 目录
 
 ```
 app/        商城应用（Flask + 建表 SQL + Dockerfile + 页面模板）
-ansible/    inventory 分组、ad-hoc 命令记录、playbook（装 Docker/exporter/一键初始化）
-monitor/    Prometheus 抓取配置 + 告警规则（alert.rules.yml）
+ansible/    inventory 分组、ad-hoc 记录、playbook（装 Docker / node_exporter / 一键初始化）
+monitor/    Prometheus 抓取配置 + 告警规则
 nginx/      Nginx 负载均衡配置（upstream 轮询）
 security/   fail2ban 配置 + 一键部署脚本
 scripts/    backup.sh / health_check.sh / log_cleanup.sh + crontab 示例
@@ -72,7 +77,7 @@ MySQL 初始化数据在 `app/db.sql`（首次启动自动导入），默认用�
 ## 关键设计
 
 - **负载均衡**：web02 用 `docker-compose.app.yml` 起独立应用容器，连 web01 的 MySQL/Redis
-- **缓存一致性**：商品详情 Redis 缓存 60s 过期；下单成功后主动 `r.delete` 清缓存，避免显示旧库存
+- **缓存一致性**：商品详情 Redis 缓存 60s 过期；下单成功后主动删缓存，避免显示旧库存
 - **防超卖**：下单事务里 `UPDATE goods SET stock=stock-N WHERE stock>=N`，影响行数为 0 即回滚
 - **监控链路**：node_exporter(4台) → Prometheus → Grafana，告警规则见 `monitor/alert.rules.yml`
 - **备份**：crontab 每天 2 点 mysqldump（`--single-transaction` 不锁表）+ gzip，保留 7 天
@@ -81,4 +86,4 @@ MySQL 初始化数据在 `app/db.sql`（首次启动自动导入），默认用�
 
 - [x] 第一阶段：单机全栈部署 + 备份 + 基础监控
 - [x] 第二阶段：Nginx 负载均衡（web01/web02 轮询）、fail2ban 防爆破
-- [ ] 第三阶段（规划中）：Alertmanager 告警、数据库拆分到 db01、MySQL 主从、故障演练
+- [ ] 第三阶段（规划中）：Alertmanager 告警、数据库拆分、MySQL 主从、故障演练
