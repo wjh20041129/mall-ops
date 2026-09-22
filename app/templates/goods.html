@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ goods.name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>{{ goods.name }}</h2>
+  <p>{{ goods.description }}</p>
+  <span class="price">￥{{ goods.price }}</span>
+  <span class="stock">库存 {{ goods.stock }}</span>
+</div>
+<form method="post" action="{{ url_for('buy') }}">
+  <input type="hidden" name="goods_id" value="{{ goods.id }}">
+  数量：<input type="number" name="quantity" value="1" min="1">
+  <button class="btn" type="submit">立即购买</button>
+</form>
+{% endblock %}

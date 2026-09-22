@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>{% block title %}商城{% endblock %}</title>
+<style>
+  body { margin: 0; font-family: "Microsoft YaHei", sans-serif; background: #f5f6f8; }
+  nav { background: #333; padding: 10px 20px; }
+  nav a { color: #fff; margin-right: 15px; text-decoration: none; }
+  nav .user { color: #ffc107; float: right; }
+  .container { max-width: 960px; margin: 20px auto; padding: 0 10px; }
+  .flash { background: #fff3cd; border: 1px solid #ffe69c; padding: 8px 12px;
+           border-radius: 4px; margin-bottom: 15px; }
+  .card { background: #fff; border-radius: 6px; padding: 16px; margin-bottom: 15px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .card h3 { margin: 0 0 8px; }
+  .price { color: #e4393c; font-size: 20px; font-weight: bold; }
+  .stock { color: #999; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  th, td { border: 1px solid #eee; padding: 8px 12px; text-align: left; }
+  th { background: #f0f0f0; }
+  .btn { display: inline-block; background: #e4393c; color: #fff; border: none;
+         padding: 8px 20px; border-radius: 4px; cursor: pointer; text-decoration: none; }
+  input[type=number], input[type=text], input[type=password] {
+         padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="{{ url_for('index') }}">商品列表</a>
+  <a href="{{ url_for('orders') }}">我的订单</a>
+  {% if session.get('username') %}
+    <a href="{{ url_for('logout') }}">退出</a>
+    <span class="user">你好，{{ session['username'] }}</span>
+  {% else %}
+    <span class="user"><a href="{{ url_for('login') }}">登录</a></span>
+  {% endif %}
+</nav>
+<div class="container">
+  {% for msg in get_flashed_messages() %}
+    <div class="flash">{{ msg }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>

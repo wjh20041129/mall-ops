@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}商品列表{% endblock %}
+{% block content %}
+<h2>全部商品</h2>
+{% for g in goods %}
+<div class="card">
+  <h3>{{ g.name }}</h3>
+  <p>{{ g.description }}</p>
+  <span class="price">￥{{ g.price }}</span>
+  <span class="stock">库存 {{ g.stock }}</span>
+  <a class="btn" href="{{ url_for('goods_detail', gid=g.id) }}">查看详情</a>
+</div>
+{% else %}
+<div class="card">暂无商品</div>
+{% endfor %}
+{% endblock %}

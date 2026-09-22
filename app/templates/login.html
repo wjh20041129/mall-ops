@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}登录{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 360px;">
+  <h2>登录</h2>
+  <form method="post">
+    <p>用户名：<input type="text" name="username" required></p>
+    <p>密码：<input type="password" name="password" required></p>
+    <button class="btn" type="submit">登录</button>
+  </form>
+  <p style="color:#999;font-size:13px;">测试账号 admin / 123456</p>
+</div>
+{% endblock %}
