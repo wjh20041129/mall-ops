@@ -62,4 +62,11 @@ MySQL 初始化数据在 `app/db.sql`，首次启动自动导入。默认用户 
 ## 当前进度
 
 - [x] 第一阶段（最小架构）：单实例部署 + 备份 + 基础监控
-- [ ] 第二阶段（支线）：负载均衡、告警、fail2ban、故障演练
+- [x] 第二阶段：Nginx 负载均衡（web01/web02 轮询）、fail2ban 防爆破
+- [ ] 第三阶段（待做）：Alertmanager 告警、故障演练、Tomcat 点缀
+
+## 负载均衡说明
+
+web02 用 `docker-compose.app.yml` 跑独立应用容器（连 web01 的 MySQL/Redis），
+web01 的 Nginx 通过 upstream 轮询分发（见 `nginx/default.conf`），
+访问日志携带 `$upstream_addr`，刷新页面可从日志确认请求交替落在两台后端。

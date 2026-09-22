@@ -11,7 +11,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./app/db.sql:/docker-entrypoint-initdb.d/db.sql:ro
     ports:
-      - "127.0.0.1:3306:3306"
+      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
       interval: 10s
@@ -22,11 +22,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: mall-redis
-    command: redis-server --appendonly yes
+    # protected-mode no：允许 web02 跨主机访问缓存
+    command: redis-server --appendonly yes --protected-mode no
     volumes:
       - redis_data:/data
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     restart: unless-stopped
 
   app:

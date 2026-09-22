@@ -60,7 +60,7 @@ def goods_detail(gid):
     key = "goods:%d" % gid
     data = r.get(key)
     if data:
-        print("缓存命中", key)
+        print("缓存命中", key, flush=True)
         goods = json.loads(data)
     else:
         goods = query("SELECT * FROM goods WHERE id=%s", (gid,), one=True)
@@ -69,6 +69,7 @@ def goods_detail(gid):
         # Decimal 不能直接 JSON 序列化，先转 float；datetime 等类型用 default=str 兜底
         goods["price"] = float(goods["price"])
         r.setex(key, 60, json.dumps(goods, ensure_ascii=False, default=str))
+        print("缓存已写入", key, flush=True)
         print("缓存已写入", key)
     return render_template("goods.html", goods=goods)
 

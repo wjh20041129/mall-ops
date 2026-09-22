@@ -1,0 +1,15 @@
+# 第二节点编排文件：web02 只跑应用容器，数据库和缓存用 web01 的
+# 用法: docker compose -f docker-compose.app.yml up -d --build
+services:
+  app:
+    build: ./app
+    container_name: mall-app
+    environment:
+      DB_HOST: 192.168.93.101
+      DB_USER: mall
+      DB_PASSWORD: mall123
+      DB_NAME: mall
+      REDIS_HOST: 192.168.93.101
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
