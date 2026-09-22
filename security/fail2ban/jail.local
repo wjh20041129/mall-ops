@@ -1,0 +1,12 @@
+# fail2ban 配置：禁止 SSH 暴力破解
+# 实测：错误密码 5 次后封禁来源 IP，封禁期间该 IP 所有连接被拒（含密钥），解封后恢复
+# 部署方式：setup_fail2ban.sh 或参考 docs/部署手册.md
+
+[DEFAULT]
+bantime = 600          # 封禁时长：600 秒（10 分钟）
+findtime = 600         # 统计窗口：10 分钟内
+maxretry = 5           # 窗口内失败 5 次即封禁
+
+[sshd]
+enabled = true
+port = ssh
