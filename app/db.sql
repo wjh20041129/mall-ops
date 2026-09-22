@@ -1,4 +1,5 @@
 -- 商城初始化脚本，MySQL 首次启动时自动导入
+SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS mall DEFAULT CHARACTER SET utf8mb4;
 USE mall;
 
