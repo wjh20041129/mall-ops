@@ -7,8 +7,8 @@ mkdir -p $backup_dir
 date_str=$(date +%Y%m%d_%H%M%S)
 file=$backup_dir/mall_$date_str.sql.gz
 
-# --single-transaction 不加锁备份 InnoDB
-docker exec mall-mysql sh -c 'mysqldump -umall -pmall123 --single-transaction mall' | gzip > $file
+# --single-transaction 不加锁备份 InnoDB；--no-tablespaces 避免 PROCESS 权限告警
+docker exec mall-mysql sh -c 'mysqldump -umall -pmall123 --single-transaction --no-tablespaces mall' | gzip > $file
 
 if [ $? -eq 0 ] && [ -s $file ]; then
     echo "$(date '+%F %T') backup ok: $(basename $file)" >> /var/log/backup.log
