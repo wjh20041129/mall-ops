@@ -52,6 +52,7 @@ Grafana 出面板（导入的 Node Exporter Full 模板）。MySQL/Redis 数据�
 ```
 app/        商城应用（Flask + 建表 SQL + Dockerfile + 页面模板）
 ansible/    inventory 分组、ad-hoc 记录、playbook（装 Docker / node_exporter / 一键初始化）
+k8s/        k3s 集群部署清单（mysql/redis/app + 镜像加速配置）
 monitor/    Prometheus 抓取配置 + 告警规则
 nginx/      Nginx 负载均衡配置（upstream 轮询）
 security/   fail2ban 配置 + 一键部署脚本
